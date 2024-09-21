@@ -13,3 +13,17 @@ This thing adds something like a local profile to soundsphere. Specifically:
 4. Dan clears (4k, 7k, 10k)
 5. MSD
 6. Live MSD (scores lose their value over time)
+
+# score requirements
+For all charts:
+1. Minimum 85.00% osu!mania V1 OD9 accuracy
+2. 0 pauses
+3. The PP of the new score should be higher than the PP of the previous score
+
+For dans:
+1. Look at the scoring system and accuracy fields here https://github.com/Thetan-ILW/PlayerProfile-soundsphere/blob/main/player_profile/dans.lua
+2. 0 pauses
+3. Music speed should be >= 1
+
+I use formulas from osu! wiki, everything should be 1:1 compared to osu  
+PP, accuracy and score are calculated using osu!mania V1 OD9
