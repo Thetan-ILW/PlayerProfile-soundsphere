@@ -12,11 +12,6 @@ function SelectView:draw()
 
 	local profile = self.game.playerProfileModel
 
-	if profile.error then
-		gfx_util.printFrame(profile.error, 0, -30, w, h, "center", "center")
-		return
-	end
-
 	local chartview = self.game.selectModel.chartview
 	local regular, ln = "-", "-"
 

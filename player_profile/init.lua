@@ -50,7 +50,9 @@ PlayerProfileModel.danChars = {
 	Theta = "θ",
 }
 
-function PlayerProfileModel:new()
+---@param notification_model sphere.NotificationModel
+function PlayerProfileModel:new(notification_model)
+	self.notificationModel = notification_model
 	self.scores = {}
 
 	self.pp = 0
@@ -83,6 +85,7 @@ function PlayerProfileModel:new()
 
 	self.osuLevels = { 0 }
 
+	---TODO: Add levels above 100
 	for i = 1, 100 do
 		table.insert(self.osuLevels, 5000 / 3 * (4 * i^3 - 3 * i^2 - i) + 1.25 * 1.8^(i - 60))
 	end
@@ -100,13 +103,22 @@ function PlayerProfileModel:new()
 		end
 	end
 
-	self:loadScores()
+	local err = self:loadScores()
 
-	if self.error then
+	if err then
+		self:error(err)
 		return
 	end
 
 	self:findDanClears()
+end
+
+function PlayerProfileModel:error(err)
+	self.pp = -1
+	self.writeScores = function () end
+	self.loadScores = function () end
+	self.notificationModel:notify("!Critical error:\nFailed to load local profile scores!\nCheck the console for details.")
+	print(err)
 end
 
 local ranks = {
@@ -158,7 +170,7 @@ function PlayerProfileModel:getRank(pp)
 		end
 	end
 
-    return ranks[#ranks].rank
+	return ranks[#ranks].rank
 end
 
 ---@param chartdiff table
@@ -184,11 +196,8 @@ end
 ---@param chart ncdk2.Chart
 ---@param chartdiff table
 ---@param score_system sphere.ScoreSystemContainer
-function PlayerProfileModel:addScore(key, chart, chartdiff, score_system)
-	if self.error then
-		return
-	end
-
+---@param paused boolean
+function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, paused)
 	local old_score = self.scores[key]
 	local dan_info = self.danInfos[key]
 
@@ -220,6 +229,12 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system)
 
 		if rate < 1 then
 			dan_clear = false
+			self.notificationModel:notify("@Using music speed below 1.00x is not allowed on this chart.")
+		end
+
+		if paused then
+			dan_clear = false
+			self.notificationModel:notify("@Pausing is not allowed on this chart.")
 		end
 	end
 
@@ -247,6 +262,10 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system)
 		return
 	end
 
+	if dan_clear then
+		self.notificationModel:notify("@Congratulations! You cleared this dan!")
+	end
+
 	self.scores[key] = {
 		time = os.time(),
 		mode = chartdiff.inputmode,
@@ -265,7 +284,12 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system)
 		technical = msds.technical,
 	}
 
-	self:writeScores()
+	local err = self:writeScores()
+
+	if err then
+		self:error(err)
+		return
+	end
 
 	self:calculateOsuStats()
 	self:calculateMsdStats()
@@ -482,22 +506,22 @@ local function cipher(text)
 	return table.concat(result)
 end
 
+---@return string? error
+---@nodiscard
 function PlayerProfileModel:loadScores()
 	if PlayerProfileModel.testing then
 		return
 	end
 
 	if not love.filesystem.getInfo(db_path) then
-		self:writeScores()
-		return
+		return self:writeScores()
 	end
 
 	local file = love.filesystem.newFile(db_path)
 	local ok, err = file:open("r")
 
 	if not ok then
-		self.error = err
-		return
+		return err
 	end
 
 	---@type { scores: ProfileScore }
@@ -511,6 +535,8 @@ function PlayerProfileModel:loadScores()
 	self:calculateMsdStats()
 end
 
+---@return string? error
+---@nodiscard
 function PlayerProfileModel:writeScores()
 	if PlayerProfileModel.testing then
 		return
@@ -520,8 +546,7 @@ function PlayerProfileModel:writeScores()
 	local ok, err = file:open("w")
 
 	if not ok then
-		self.error = err
-		return
+		return err
 	end
 
 	local t = {

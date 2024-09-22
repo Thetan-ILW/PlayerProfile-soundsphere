@@ -54,16 +54,12 @@ local function Header(self)
 	local profile = self.game.playerProfileModel
 	local pp_str
 
-	if profile.error then
-		pp_str = profile.error
-	else
-		if pp_mode == "pp" then
-			pp_str = ("%ipp"):format(profile.pp)
-		elseif pp_mode == "msd" then
-			pp_str = ("%0.02f MSD"):format(profile.ssr.overall)
-		elseif pp_mode == "live_msd" then
-			pp_str = ("%0.02f Live MSD"):format(profile.liveSsr.overall)
-		end
+	if pp_mode == "pp" then
+		pp_str = ("%ipp"):format(profile.pp)
+	elseif pp_mode == "msd" then
+		pp_str = ("%0.02f MSD"):format(profile.ssr.overall)
+	elseif pp_mode == "live_msd" then
+		pp_str = ("%0.02f Live MSD"):format(profile.liveSsr.overall)
 	end
 
 	local font = spherefonts.get("Noto Sans", 20)
