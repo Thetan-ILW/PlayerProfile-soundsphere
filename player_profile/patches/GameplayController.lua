@@ -8,6 +8,9 @@ function GameplayController:saveScore()
 	local score_system = self.rhythmModel.scoreEngine.scoreSystem
 	local osu = score_system.judgements["osu!legacy OD9"]
 
+	if osu.accuracy < 0.85 then
+		return
+	end
 
 	local chartdiff = self.playContext.chartdiff
 	local key = ("%s_%s"):format(chartdiff.hash, chartdiff.inputmode)
