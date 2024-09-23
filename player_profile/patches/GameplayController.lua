@@ -16,5 +16,5 @@ function GameplayController:saveScore()
 	local key = ("%s_%s"):format(chartdiff.hash, chartdiff.inputmode)
 	local chart = self.rhythmModel.chart
 
-	self.playerProfileModel:addScore(key, chart, chartdiff, score_system, self.playContext.scoreEntry.pauses > 0)
+	self.playerProfileModel:addScore(key, chart, chartdiff, score_system, self.playContext)
 end

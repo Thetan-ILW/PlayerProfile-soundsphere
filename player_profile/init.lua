@@ -11,7 +11,8 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 
 ---@class PlayerProfileModel
 ---@operator call: PlayerProfileModel
----@field scores table<string, skibidi.ProfileScore>
+---@field topScores {[string]: ProfileTopScore}
+---@field scores {[integer]: ProfileScore}
 ---@field pp number
 ---@field accuracy number
 ---@field ssr table<string, number>
@@ -20,7 +21,7 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 ---@field danInfos { name: string, hash: string, category: string, ss: string?, accuracy: number? }[]
 local PlayerProfileModel = class()
 
----@class ProfileScore
+---@class ProfileTopScore
 ---@field mode string
 ---@field time number
 ---@field rate number
@@ -36,6 +37,13 @@ local PlayerProfileModel = class()
 ---@field jackspeed number?
 ---@field chordjack number?
 ---@field technical number?
+
+---@class ProfileScore
+---@field osuAccuracy number
+---@field osuv2Accuracy number
+---@field osuScore number
+---@field etternaAccuracy number
+---@field quaverAccuracy number
 
 local db_path = "userdata/player_profile"
 
@@ -53,6 +61,7 @@ PlayerProfileModel.danChars = {
 ---@param notification_model sphere.NotificationModel
 function PlayerProfileModel:new(notification_model)
 	self.notificationModel = notification_model
+	self.topScores = {}
 	self.scores = {}
 
 	self.pp = 0
@@ -196,10 +205,13 @@ end
 ---@param chart ncdk2.Chart
 ---@param chartdiff table
 ---@param score_system sphere.ScoreSystemContainer
----@param paused boolean
-function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, paused)
+---@param play_context sphere.PlayContext
+function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_context)
 	local old_score = self.scores[key]
 	local dan_info = self.danInfos[key]
+
+	local score_id = play_context.scoreEntry.id
+	local paused = play_context.scoreEntry.pauses > 0
 
 	---@type sphere.Judge
 	local osu_v1 = score_system.judgements["osu!legacy OD9"]
@@ -266,7 +278,7 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, paused
 		self.notificationModel:notify("@Congratulations! You cleared this dan!")
 	end
 
-	self.scores[key] = {
+	self.topScores[key] = {
 		time = os.time(),
 		mode = chartdiff.inputmode,
 		rate = chartdiff.rate,
@@ -284,6 +296,14 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, paused
 		technical = msds.technical,
 	}
 
+	self.scores[score_id] = {
+		osuScore = osu_score,
+		osuAccuracy = osu_v1.accuracy,
+		etternaAccuracy = j4_accuracy,
+		osuv2Accuracy = score_system.judgements["osu!mania OD8"].accuracy,
+		quaverAccuracy = score_system.judgements["Quaver standard"].accuracy,
+	}
+
 	local err = self:writeScores()
 
 	if err then
@@ -296,6 +316,12 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, paused
 	self:findDanClears()
 end
 
+---@param score_id integer
+---@return ProfileScore
+function PlayerProfileModel:getScore(score_id)
+	return self.scores[score_id]
+end
+
 function PlayerProfileModel:calculateOsuStats()
 	self.pp = 0
 
@@ -304,7 +330,7 @@ function PlayerProfileModel:calculateOsuStats()
 	local num_scores = 0
 	local total_score = 0
 
-	for _, v in pairs(self.scores) do
+	for _, v in pairs(self.topScores) do
 		table.insert(pp_sorted, v.osuPP)
 
 		accuracy = accuracy + v.osuAccuracy
@@ -354,7 +380,8 @@ function PlayerProfileModel:findDanClears()
 	end
 end
 
----@param key string
+---@param hash string
+---@param inputmode string
 ---@return boolean
 ---@return boolean
 function PlayerProfileModel:isDanIsCleared(hash, inputmode)
@@ -440,7 +467,7 @@ function PlayerProfileModel:calculateMsdStats()
 	local ssr_sorted = {}
 	local live_ssr_sorted = {}
 
-	for _, v in pairs(self.scores) do
+	for _, v in pairs(self.topScores) do
 		if v.overall then
 			table.insert(ssr_sorted, {
 				overall = v.overall,
@@ -524,10 +551,23 @@ function PlayerProfileModel:loadScores()
 		return err
 	end
 
-	---@type { scores: ProfileScore }
+	---@type { version: number, topScores: {[string]: ProfileTopScore}, scores: {[string]: ProfileScore} }
 	local t = json.decode(cipher(file:read()))
 
-	self.scores = t.scores
+	---@type {[string]: ProfileScore}
+	local scores
+
+	if t.version ~= 1 then
+		scores = {}
+		self.topScores = t.scores
+	else
+		scores = t.scores
+		self.topScores = t.topScores
+	end
+
+	for k, v in pairs(scores) do
+		self.scores[tonumber(k)] = v
+	end
 
 	file:close()
 
@@ -549,8 +589,16 @@ function PlayerProfileModel:writeScores()
 		return err
 	end
 
+	local scores = {}
+
+	for k, v in pairs(self.scores) do
+		scores[tostring(k)] = v
+	end
+
 	local t = {
-		scores = self.scores,
+		topScores = self.topScores,
+		scores = scores,
+		version = 1
 	}
 
 	local encoded = json.encode(t)
