@@ -1,8 +1,9 @@
 local class = require("class")
 
 local json = require("json")
-local dans = require("player_profile.dans")
+local math_util = require("math_util")
 
+local dans = require("player_profile.dans")
 local calculateOsuStats = require("player_profile.osu_stats")
 local calculateMsdStats = require("player_profile.msd_stats")
 
@@ -178,20 +179,44 @@ function PlayerProfileModel:getMsd(chartdiff, chart, accuracy)
 	return result
 end
 
+---@param chartview table
+---@return number
+local function getOD(chartview)
+	if chartview.osu_od then
+		return chartview.osu_od
+	end
+
+	---@type string
+	local format = chartview.format
+
+	if format == "sm" or format == "ssc" then
+		return 9
+	elseif format == "ojn" then
+		return 7
+	else
+		return 8
+	end
+end
+
 ---@param key string
 ---@param chart ncdk2.Chart
 ---@param chartdiff table
+---@param chartview table
 ---@param score_system sphere.ScoreSystemContainer
 ---@param play_context sphere.PlayContext
-function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_context)
+function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_system, play_context)
 	local old_score = self.scores[key]
 	local dan_info = self.danInfos[key]
 
 	local score_id = play_context.scoreEntry.id
 	local paused = play_context.scoreEntry.pauses > 0
 
+	local od = math_util.round(math_util.clamp(getOD(chartview), 0, 10), 1)
+	local osu_v1_name = ("osu!legacy OD%i"):format(od)
+	local osu_v2_name = ("osu!mania OD%i"):format(od)
+
 	---@type sphere.Judge
-	local osu_v1 = score_system.judgements["osu!legacy OD9"]
+	local osu_v1 = score_system.judgements[osu_v1_name]
 
 	if osu_v1.accuracy < 0.85 then
 		self:updateSession(chartdiff, score_system, true)
@@ -282,7 +307,7 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_c
 		osuScore = osu_score,
 		osuAccuracy = osu_v1.accuracy,
 		etternaAccuracy = j4_accuracy,
-		osuv2Accuracy = score_system.judgements["osu!mania OD8"].accuracy,
+		osuv2Accuracy = score_system.judgements[osu_v2_name].accuracy,
 		quaverAccuracy = score_system.judgements["Quaver standard"].accuracy,
 	}
 
