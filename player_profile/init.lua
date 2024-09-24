@@ -12,16 +12,20 @@ local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
 local has_minacalc, etterna_msd = pcall(require, "libchart.etterna_msd")
 local _, minacalc = pcall(require, "libchart.minacalc")
 
+---@alias RecentChartInfo { osu_diff: number, enps_diff: number, msd_diff: number, tempo: number }
+---@alias DanInfo { name: string, hash: string, category: string, ss: string?, accuracy: number? }
+
 ---@class PlayerProfileModel
 ---@operator call: PlayerProfileModel
 ---@field topScores {[string]: ProfileTopScore}
 ---@field scores {[integer]: ProfileScore}
+---@field recentlyPlayedCharts {[string]: RecentChartInfo[]}
 ---@field pp number
 ---@field accuracy number
 ---@field ssr table<string, number>
 ---@field liveSsr table<string, number>
 ---@field danClears table<string, table<string, string>>
----@field danInfos { name: string, hash: string, category: string, ss: string?, accuracy: number? }[]
+---@field danInfos DanInfo[]
 local PlayerProfileModel = class()
 
 ---@class ProfileTopScore
@@ -48,14 +52,16 @@ local PlayerProfileModel = class()
 ---@field etternaAccuracy number
 ---@field quaverAccuracy number
 
+---@alias ProfileModeInfo { avgOsuDiff: number, avgEnpsDiff: number, avgMsdDiff: number, avgTempo: number, chartsPlayed: number }
+
 ---@class ProfileSession
 ---@field startTime number
----@field endTime number
+---@field endTime number?
 ---@field timePlayed number
 ---@field chartsPlayed number
 ---@field rageQuits number
 ---@field keysPressed number
----@field modes {[string]: { avgOsuDiff: number, avgEnpsDiff: number, avgMsdDiff: number, chartsPlayed: number }}
+---@field modes {[string]: ProfileModeInfo}
 
 local db_path = "userdata/player_profile"
 
@@ -75,6 +81,8 @@ function PlayerProfileModel:new(notification_model)
 	self.notificationModel = notification_model
 	self.topScores = {}
 	self.scores = {}
+	self.sessions = {}
+	self.recentlyPlayedCharts = {}
 
 	self.pp = 0
 	self.accuracy = 0
@@ -131,6 +139,15 @@ function PlayerProfileModel:new(notification_model)
 		return
 	end
 
+	table.insert(self.sessions, {
+		startTime = os.time(),
+		timePlayed = 0,
+		chartsPlayed = 0,
+		rageQuits = 0,
+		keysPressed = 0,
+		modes = {}
+	})
+
 	self:findDanClears()
 end
 
@@ -175,6 +192,11 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_c
 
 	---@type sphere.Judge
 	local osu_v1 = score_system.judgements["osu!legacy OD9"]
+
+	if osu_v1.accuracy < 0.85 then
+		self:updateSession(chartdiff, score_system, true)
+		return
+	end
 
 	---@type number
 	local osu_score = osu_v1.score
@@ -264,6 +286,8 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_c
 		quaverAccuracy = score_system.judgements["Quaver standard"].accuracy,
 	}
 
+	self:updateSession(chartdiff, score_system)
+
 	local err = self:writeScores()
 
 	if err then
@@ -274,6 +298,58 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, score_system, play_c
 	calculateOsuStats(self)
 	calculateMsdStats(self)
 	self:findDanClears()
+end
+
+---@param chartdiff table
+---@param rage_quit boolean?
+function PlayerProfileModel:updateSession(chartdiff, score_system, rage_quit)
+	local session = self.sessions[#self.sessions]
+	session.keysPressed = session.keysPressed + score_system.base.hitCount + score_system.base.earlyHitCount
+
+	if rage_quit then
+		session.rageQuits = session.rageQuits + 1
+		return
+	end
+
+	local mode_charts = self.recentlyPlayedCharts[chartdiff.inputmode] or {}
+	table.insert(mode_charts, {
+		osu_diff = chartdiff.osu_diff,
+		enps_diff = chartdiff.enps_diff,
+		msd_diff = chartdiff.msd_diff or 0,
+		tempo = chartdiff.tempo
+	})
+	self.recentlyPlayedCharts[chartdiff.inputmode] = mode_charts
+
+	session.endTime = os.time()
+	session.timePlayed = session.timePlayed + chartdiff.duration
+	session.chartsPlayed = session.chartsPlayed + 1
+	local mode_info = session.modes[chartdiff.inputmode] or {
+		avgOsuDiff = 0,
+		avgEnpsDiff = 0,
+		avgMsdDiff = 0,
+		avgTempo = 0,
+		chartsPlayed = 0
+	}
+
+	local total_osu_diff = 0
+	local total_enps_diff = 0
+	local total_msd_diff = 0
+	local total_tempo = 0
+
+	for _, v in ipairs(mode_charts) do
+		total_osu_diff = total_osu_diff + v.osu_diff
+		total_enps_diff = total_enps_diff + v.enps_diff
+		total_msd_diff = total_msd_diff + v.msd_diff
+		total_tempo = total_tempo + v.tempo
+	end
+
+	mode_info.avgOsuDiff = total_osu_diff / #mode_charts
+	mode_info.avgEnpsDiff = total_enps_diff / #mode_charts
+	mode_info.avgMsdDiff = total_msd_diff / #mode_charts
+	mode_info.avgTempo = total_tempo / #mode_charts
+	mode_info.chartsPlayed = mode_info.chartsPlayed + 1
+
+	session.modes[chartdiff.inputmode] = mode_info
 end
 
 ---@param score_id integer
@@ -350,6 +426,7 @@ function PlayerProfileModel:loadScores()
 	end
 
 	if not love.filesystem.getInfo(db_path) then
+		calculateOsuStats(self) -- to show correct rank
 		return self:writeScores()
 	end
 
@@ -360,7 +437,7 @@ function PlayerProfileModel:loadScores()
 		return err
 	end
 
-	---@type { version: number, topScores: {[string]: ProfileTopScore}, scores: {[string]: ProfileScore} }
+	---@type { version: number, topScores: {[string]: ProfileTopScore}, scores: {[string]: ProfileScore}, sessions: ProfileSession[] }
 	local t = json.decode(cipher(file:read()))
 
 	---@type {[number]: ProfileScore}
@@ -368,10 +445,12 @@ function PlayerProfileModel:loadScores()
 
 	if t.version ~= 1 then
 		scores = {}
+		self.sessions = {}
 		self.topScores = t.scores
 	else
 		scores = t.scores
 		self.topScores = t.topScores
+		self.sessions = t.sessions or {}
 	end
 
 	for k, v in pairs(scores) do
@@ -405,9 +484,16 @@ function PlayerProfileModel:writeScores()
 		scores[tostring(k)] = v
 	end
 
+	local this_session = self.sessions[#self.sessions]
+
+	if this_session and this_session.endTime == nil then
+		table.remove(self.sessions, #self.sessions)
+	end
+
 	local t = {
 		topScores = self.topScores,
 		scores = scores,
+		sessions = self.sessions,
 		version = 1
 	}
 
