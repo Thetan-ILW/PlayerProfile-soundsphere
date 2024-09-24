@@ -140,6 +140,9 @@ function PlayerProfileModel:new(notification_model)
 		return
 	end
 
+	calculateOsuStats(self)
+	calculateMsdStats(self)
+
 	table.insert(self.sessions, {
 		startTime = os.time(),
 		timePlayed = 0,
@@ -205,7 +208,7 @@ end
 ---@param score_system sphere.ScoreSystemContainer
 ---@param play_context sphere.PlayContext
 function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_system, play_context)
-	local old_score = self.scores[key]
+	local old_score = self.topScores[key]
 	local dan_info = self.danInfos[key]
 
 	local score_id = play_context.scoreEntry.id
@@ -278,11 +281,14 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 	end
 
 	if not should_count then
+		if dan_info then
+			self.notificationModel:notify("@MASSIVE L BOZO COPE")
+		end
 		return
 	end
 
 	if dan_clear then
-		self.notificationModel:notify("@Congratulations! You cleared this dan!")
+		self.notificationModel:notify(("@Congratulations! You cleared %s dan!"):format(dan_info.name))
 	end
 
 	self.topScores[key] = {
@@ -387,7 +393,7 @@ function PlayerProfileModel:findDanClears()
 	for input_mode_name, input_mode in pairs(dans) do
 		for category_name, category in pairs(input_mode) do
 			for i, item in ipairs(category) do
-				local score = self.scores[item.hash]
+				local score = self.topScores[item.hash]
 
 				if score and score.danClear then
 					self.danClears[input_mode_name][category_name] = item.name
@@ -451,7 +457,6 @@ function PlayerProfileModel:loadScores()
 	end
 
 	if not love.filesystem.getInfo(db_path) then
-		calculateOsuStats(self) -- to show correct rank
 		return self:writeScores()
 	end
 
@@ -483,9 +488,6 @@ function PlayerProfileModel:loadScores()
 	end
 
 	file:close()
-
-	calculateOsuStats(self)
-	calculateMsdStats(self)
 end
 
 ---@return string? error
