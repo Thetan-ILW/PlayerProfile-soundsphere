@@ -66,6 +66,14 @@ local PlayerProfileModel = class()
 
 local db_path = "userdata/player_profile"
 
+PlayerProfileModel.version = 1
+PlayerProfileModel.scoreSources = {
+	"osuv1",
+	"osuv2",
+	"etterna",
+	"quaver"
+}
+
 PlayerProfileModel.danChars = {
 	Alpha = "α",
 	Beta = "β",
