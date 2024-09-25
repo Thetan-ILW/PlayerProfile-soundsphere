@@ -268,27 +268,37 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 		end
 	end
 
-	local should_count = true
+	local top_score = true
 
 	if old_score then
 		if dan_info then
 			if old_score.danClear and not dan_clear then
-				should_count = false
+				top_score = false
 			end
 		end
 
 		if pp <= old_score.osuPP then
-			should_count = false
+			top_score = false
 		end
 
 		if dan_info then
 			if not old_score.danClear and dan_clear then
-				should_count = true
+				top_score = true
 			end
 		end
 	end
 
-	if not should_count then
+	self.scores[score_id] = {
+		osuScore = osu_score,
+		osuAccuracy = osu_v1.accuracy,
+		etternaAccuracy = j4_accuracy,
+		osuv2Accuracy = score_system.judgements[osu_v2_name].accuracy,
+		quaverAccuracy = score_system.judgements["Quaver standard"].accuracy,
+	}
+
+	self:updateSession(chartdiff, score_system)
+
+	if not top_score then
 		if dan_info then
 			self.notificationModel:notify("@MASSIVE L BOZO COPE")
 		end
@@ -316,16 +326,6 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 		chordjack = msds.chordjack,
 		technical = msds.technical,
 	}
-
-	self.scores[score_id] = {
-		osuScore = osu_score,
-		osuAccuracy = osu_v1.accuracy,
-		etternaAccuracy = j4_accuracy,
-		osuv2Accuracy = score_system.judgements[osu_v2_name].accuracy,
-		quaverAccuracy = score_system.judgements["Quaver standard"].accuracy,
-	}
-
-	self:updateSession(chartdiff, score_system)
 
 	local err = self:writeScores()
 
