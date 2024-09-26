@@ -17,6 +17,7 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 
 ---@alias RecentChartInfo { osu_diff: number, enps_diff: number, msd_diff: number, tempo: number }
 ---@alias DanInfo { name: string, hash: string, category: string, ss: string?, accuracy: number? }
+---@alias DanClears {[string]: {[string]: { name: string, time: number }}}
 
 ---@class PlayerProfileModel
 ---@operator call: PlayerProfileModel
@@ -27,7 +28,7 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 ---@field accuracy number
 ---@field ssr table<string, number>
 ---@field liveSsr table<string, number>
----@field danClears table<string, table<string, string>>
+---@field danClears {[string]: {[string]: string}}
 ---@field danInfos DanInfo[]
 local PlayerProfileModel = class()
 
@@ -84,7 +85,6 @@ PlayerProfileModel.danChars = {
 	Epsilon = "ε",
 	Zeta = "ζ",
 	Eta = "η",
-	Theta = "θ",
 }
 
 ---@param notification_model sphere.NotificationModel
@@ -142,6 +142,7 @@ function PlayerProfileModel:new(notification_model)
 			end
 		end
 	end
+
 
 	local err = self:loadScores()
 
@@ -542,6 +543,36 @@ end
 ---@return Activity
 function PlayerProfileModel:getActivity()
 	return Activity(self.sessions)
+end
+
+---@return { modes: string, types: {[string]: string[]}}
+--- types is a table of [mode]: dan_type[]
+function PlayerProfileModel:getAvailableDans()
+	local t = { modes = {}, types = {} }
+	for input_mode_name, input_mode in pairs(dans) do
+		table.insert(t.modes, input_mode_name)
+		for category_name, category in pairs(input_mode) do
+			t.types[input_mode_name] = t.types[input_mode_name] or {}
+			table.insert(t.types[input_mode_name], category_name)
+		end
+	end
+	return t
+end
+
+---@param mode string
+---@param type string
+---@return { name: string, time: string? }[]
+function PlayerProfileModel:getDanTable(mode, type)
+	local t = {}
+
+	for i, item in pairs(dans[mode][type]) do
+		local score = self.topScores[item.hash]
+
+		local time = (score and score.danClear) and os.date("%d/%m/%Y", score.time) or nil
+		table.insert(t, { name = item.name, time = time })
+	end
+
+	return t
 end
 
 return PlayerProfileModel
