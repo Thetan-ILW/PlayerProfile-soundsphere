@@ -7,6 +7,8 @@ local dans = require("player_profile.dans")
 local calculateOsuStats = require("player_profile.osu_stats")
 local calculateMsdStats = require("player_profile.msd_stats")
 
+local Activity = require("player_profile.stats.Activity")
+
 local getPP = require("player_profile.osu_pp")
 
 local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
@@ -535,6 +537,11 @@ function PlayerProfileModel:writeScores()
 	local encoded = json.encode(t)
 	file:write(cipher(encoded))
 	file:close()
+end
+
+---@return Activity
+function PlayerProfileModel:getActivity()
+	return Activity(self.sessions)
 end
 
 return PlayerProfileModel
