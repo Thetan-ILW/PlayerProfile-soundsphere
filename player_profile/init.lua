@@ -21,6 +21,7 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 
 ---@class PlayerProfileModel
 ---@operator call: PlayerProfileModel
+---@field profileCreationTime number
 ---@field topScores {[string]: ProfileTopScore}
 ---@field scores {[integer]: ProfileScore}
 ---@field recentlyPlayedCharts {[string]: RecentChartInfo[]}
@@ -494,6 +495,8 @@ function PlayerProfileModel:loadScores()
 		self.sessions = t.sessions or {}
 	end
 
+	self.profileCreationTime = t.profileCreationTime or os.time()
+
 	for k, v in pairs(scores) do
 		self.scores[tonumber(k) or -1] = v
 	end
@@ -532,7 +535,8 @@ function PlayerProfileModel:writeScores()
 		topScores = self.topScores,
 		scores = scores,
 		sessions = self.sessions,
-		version = 1
+		version = 1,
+		profileCreationTime = self.profileCreationTime or os.time()
 	}
 
 	local encoded = json.encode(t)
@@ -573,6 +577,93 @@ function PlayerProfileModel:getDanTable(mode, type)
 	end
 
 	return t
+end
+
+local function commaValue(n) -- credit http://richard.warburton.it
+	local left,num,right = string.match(n,'^([^%d]*%d)(%d*)(.-)$')
+	return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
+end
+
+function PlayerProfileModel:getOverallStats()
+	local osuv2_acc_total = 0.0
+	local etterna_acc_total = 0.0
+	local num_scores = 0
+
+	for i, v in pairs(self.scores) do
+		osuv2_acc_total = osuv2_acc_total + v.osuv2Accuracy
+		etterna_acc_total = etterna_acc_total + v.etternaAccuracy
+		num_scores = num_scores + 1
+	end
+
+	local total_keys_pressed = 0
+	local total_charts_played = 0
+	local total_time_played = 0
+	local total_ragequits = 0
+
+	for i, v in ipairs(self.sessions) do
+		total_keys_pressed = total_keys_pressed + v.keysPressed
+		total_charts_played = total_charts_played + v.chartsPlayed
+		total_time_played = total_time_played + v.timePlayed
+		total_ragequits = total_ragequits + v.rageQuits
+	end
+
+	return {
+		profileCreationDate = os.date("%d/%m/%Y", self.profileCreationTime),
+		rank = self.rank,
+		keysPressed = commaValue(total_keys_pressed),
+		chartsPlayed = total_charts_played,
+		timePlayed = total_time_played,
+		rageQuits = total_ragequits,
+		level = self.osuLevel,
+		levelProgress = self.osuLevelPercent,
+		pp = self.pp,
+		osuv1Accuracy = self.accuracy,
+		osuv2Accuracy = osuv2_acc_total / num_scores,
+		etternaAccuracy = etterna_acc_total / num_scores
+	}
+end
+
+function PlayerProfileModel:getModeStats(mode)
+	local total_star_rate = 0
+	local total_enps = 0
+	local total_tempo = 0
+	local sessions_num = 0
+
+	for i, session in ipairs(self.sessions) do
+		local m = session.modes[mode]
+
+		if m then
+			total_star_rate = total_star_rate + m.avgOsuDiff
+			total_enps = total_enps + m.avgEnpsDiff
+			total_tempo = total_tempo + m.avgTempo
+			sessions_num = sessions_num + 1
+		end
+	end
+
+	---@type number[]
+	local pp_t = {}
+	local pp = 0.0
+
+	for k, v in pairs(self.topScores) do
+		if v.mode == mode then
+			table.insert(pp_t, v.osuPP)
+		end
+	end
+
+	table.sort(pp_t, function(a, b)
+		return a > b
+	end)
+
+	for i, v in ipairs(pp_t) do
+		pp = pp + (v * math.pow(0.95, (i - 1)))
+	end
+
+	return {
+		pp = pp,
+		avgStarRate = total_star_rate / sessions_num,
+		avgEnps = total_enps / sessions_num,
+		avgTempo = total_tempo / sessions_num
+	}
 end
 
 return PlayerProfileModel

@@ -63,7 +63,7 @@ function Activity:getDailyTotals(sessions)
 	self.maxSessionTime = self.maxSessionTime
 
 	if self.sessionCount > 1 then
-		self.avgSessionTime = (total_session_time / (self.sessionCount - 1))
+		self.avgSessionTime = (total_session_time / (self.sessionCount))
 	else
 			self.avgSessionTime = 0
 	end
