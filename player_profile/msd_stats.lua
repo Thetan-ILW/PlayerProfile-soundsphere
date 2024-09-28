@@ -20,86 +20,42 @@ local function getLiveRatingWeight(score_time)
 	return weight
 end
 
----@param ssr table<string, number>[]
----@return table<string, number>
+---@param ssr number[]
+---@return number
 local function ssrAverage(ssr)
 	local avg_count = 20
-
-	local overall_sum = 0
-	local stream_sum = 0
-	local jumpstream_sum = 0
-	local handstream_sum = 0
-	local stamina_sum = 0
-	local jackspeed_sum = 0
-	local chordjack_sum = 0
-	local technical_sum = 0
+	local sum = 0.0
 
 	for i, v in ipairs(ssr) do
 		if i > avg_count then
 			break
 		end
 
-		overall_sum = overall_sum + v.overall
-		stream_sum = stream_sum + v.stream
-		jumpstream_sum = jumpstream_sum + v.jumpstream
-		handstream_sum = handstream_sum + v.handstream
-		stamina_sum = stamina_sum + v.stamina
-		jackspeed_sum = jackspeed_sum + v.jackspeed
-		chordjack_sum = chordjack_sum + v.chordjack
-		technical_sum = technical_sum + v.technical
+		sum = sum + v
 	end
 
-	return {
-		overall = overall_sum / avg_count,
-		stream = stream_sum / avg_count,
-		jumpstream = jumpstream_sum / avg_count,
-		handstream = handstream_sum / avg_count,
-		stamina = stamina_sum / avg_count,
-		jackspeed = jackspeed_sum / avg_count,
-		chordjack = chordjack_sum / avg_count,
-		technical = technical_sum / avg_count,
-	}
+	return sum / avg_count
 end
 
 ---@param self PlayerProfileModel
 return function(self)
-	local ssr_sorted = {}
-	local live_ssr_sorted = {}
+	local ssr_sorted = {} ---@type number[]
+	local live_ssr_sorted = {} ---@type number[]
 
 	for _, v in pairs(self.topScores) do
 		if v.overall then
-			table.insert(ssr_sorted, {
-				overall = v.overall,
-				stream = v.stream,
-				jumpstream = v.jumpstream,
-				handstream = v.handstream,
-				stamina = v.stamina,
-				jackspeed = v.jackspeed,
-				chordjack = v.chordjack,
-				technical = v.technical,
-			})
-
 			local weight = getLiveRatingWeight(v.time)
-
-			table.insert(live_ssr_sorted, {
-				overall = v.overall * weight,
-				stream = v.stream * weight,
-				jumpstream = v.jumpstream * weight,
-				handstream = v.handstream * weight,
-				stamina = v.stamina * weight,
-				jackspeed = v.jackspeed * weight,
-				chordjack = v.chordjack * weight,
-				technical = v.technical * weight,
-			})
+			table.insert(ssr_sorted, v.overall)
+			table.insert(live_ssr_sorted, v.overall * weight)
 		end
 	end
 
 	table.sort(ssr_sorted, function(a, b)
-		return a.overall > b.overall
+		return a > b
 	end)
 
 	table.sort(live_ssr_sorted, function(a, b)
-		return a.overall > b.overall
+		return a > b
 	end)
 
 	self.ssr = ssrAverage(ssr_sorted)

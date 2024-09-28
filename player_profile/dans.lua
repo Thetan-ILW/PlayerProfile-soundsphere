@@ -4,12 +4,11 @@ local v2_9 = "osu!mania OD9"
 local t = {
 	["4key"] = {
 		regular = {
-			{ name = "1th", hash = "521aacbb806bd0a5e450671565a44709" },
-			{ name = "2th", hash = "e5e7b0cd3a7da4bd39cd8f82eaa7cd8b" },
-			{ name = "3th", hash = "31192103e37a913488720f3ae5b107de" },
+			{ name = "1st", hash = "521aacbb806bd0a5e450671565a44709" },
+			{ name = "2nd", hash = "e5e7b0cd3a7da4bd39cd8f82eaa7cd8b" },
+			{ name = "3rd", hash = "31192103e37a913488720f3ae5b107de" },
 			{ name = "4th", hash = "05c57c4a96dbdfbeb9fec810741b5fca" },
 			{ name = "5th", hash = "23054363b86479ba1d9596d26a7acc69" },
-			{ name = "6th", hash = "8e296aac6712ec47eda7e8a71f61c8c5" },
 			{ name = "6th", hash = "f7c9fbb87a804dc7f5f8f558deac71bd" },
 			{ name = "7th", hash = "8e1be66b82e1480c4ad8a4e1a297b1b8" },
 			{ name = "8th", hash = "92bba709bcc871333df46d606aaa5d48" },
@@ -24,15 +23,14 @@ local t = {
 			{ name = "Eta", hash = "8f175c7b6f529a877871eb2044ce516b" },
 		},
 		ln = {
-			{ name = "1th", hash = "9d85e749d23867de0de4c386f1bcd9c4", ss = v2_8, accuracy = 0.97 },
-			{ name = "2th", hash = "6225fbaff7826864d3d0dcb969748ba2", ss = v2_8, accuracy = 0.97 },
-			{ name = "3th", hash = "a10badbb0221cd980074af52985394f2", ss = v2_8, accuracy = 0.97 },
+			{ name = "1st", hash = "9d85e749d23867de0de4c386f1bcd9c4", ss = v2_8, accuracy = 0.97 },
+			{ name = "2nd", hash = "6225fbaff7826864d3d0dcb969748ba2", ss = v2_8, accuracy = 0.97 },
+			{ name = "3rd", hash = "a10badbb0221cd980074af52985394f2", ss = v2_8, accuracy = 0.97 },
 			{ name = "4th", hash = "c3004678a64284311c4b8122b9c24c95", ss = v2_8, accuracy = 0.97 },
 			{ name = "5th", hash = "5d0bb157a5a15366e5b3f618c46a4dbc", ss = v2_8, accuracy = 0.97 },
 			{ name = "6th", hash = "3e48a802afa52dd968af5e873db2d11f", ss = v2_8, accuracy = 0.97 },
 			{ name = "7th", hash = "805603dbe1ffa54cc3e1de40a46db30f", ss = v2_8, accuracy = 0.97 },
 			{ name = "8th", hash = "c5de0708efdb56b4081e6f922e82ca1f", ss = v2_8, accuracy = 0.97 },
-			{ name = "9th", hash = "72424bc96cdcfc9093d8c131ac049cca", ss = v2_8, accuracy = 0.97 },
 			{ name = "9th", hash = "72424bc96cdcfc9093d8c131ac049cca", ss = v2_8, accuracy = 0.97 },
 			{ name = "10th", hash = "90bba68a15429f745702dbf1d17664c2", ss = v2_8, accuracy = 0.97 },
 			{ name = "11th", hash = "c81ab2651fb6746d6af37f53e8830105", ss = v2_8, accuracy = 0.97 },
@@ -45,9 +43,9 @@ local t = {
 	["7key"] = {
 		regular = {
 			{ name = "0th", hash = "403ddeb24d4deeecc75a09942640401e" },
-			{ name = "1th", hash = "d2dde2e1cdfb0fdeaa975aea4ae33e42" },
-			{ name = "2th", hash = "f33d7c8df46e579996951e63746c3217" },
-			{ name = "3th", hash = "b2deac5abe831acc34b4cb053f1949a1" },
+			{ name = "1st", hash = "d2dde2e1cdfb0fdeaa975aea4ae33e42" },
+			{ name = "2nd", hash = "f33d7c8df46e579996951e63746c3217" },
+			{ name = "3rd", hash = "b2deac5abe831acc34b4cb053f1949a1" },
 			{ name = "4th", hash = "6ef18aaf72c4f71756b0da87f7a289bc" },
 			{ name = "5th", hash = "f198256f6da1b0a95f8e267196333045" },
 			{ name = "6th", hash = "e0f009741295dc2912d6991f15e3fa43" },
@@ -61,9 +59,9 @@ local t = {
 		},
 		ln = {
 			{ name = "0th", hash = "04f95ed271f790090e53dbe7eff50dbd" },
-			{ name = "1th", hash = "d362b5025667785becb1dbd18e55a963" },
-			{ name = "2th", hash = "f80fc0aa5c1ea84faf8919874f37be86" },
-			{ name = "3th", hash = "1052047a32fa9cc8d4105723e330ada0" },
+			{ name = "1st", hash = "d362b5025667785becb1dbd18e55a963" },
+			{ name = "2st", hash = "f80fc0aa5c1ea84faf8919874f37be86" },
+			{ name = "3rd", hash = "1052047a32fa9cc8d4105723e330ada0" },
 			{ name = "4th", hash = "173928678c78d1fa6cff5d8ca2c07169" },
 			{ name = "5th", hash = "c84c3b7ace5d36c587c269aab33a0c1c" },
 			{ name = "6th", hash = "8aea034ea3f511394c36dcb7adb5ea9c" },
@@ -79,9 +77,9 @@ local t = {
 	["10key"] = {
 		regular = {
 			{ name = "0th", hash = "d7328e981f43d7f8ba11b4ad90b8c005" },
-			{ name = "1th", hash = "3663897f04a1bd32d15a475d635e8467" },
-			{ name = "2th", hash = "7e7e67d8385771007d099942c18ba7ff" },
-			{ name = "3th", hash = "64a84abcf073a90ae8b2080dbd252539" },
+			{ name = "1st", hash = "3663897f04a1bd32d15a475d635e8467" },
+			{ name = "2nd", hash = "7e7e67d8385771007d099942c18ba7ff" },
+			{ name = "3rd", hash = "64a84abcf073a90ae8b2080dbd252539" },
 			{ name = "4th", hash = "fe913e5a9f720884e50d4b7fae7b9fae" },
 			{ name = "5th", hash = "cb1c073652b14f5a346d383565acba91" },
 			{ name = "6th", hash = "149e17f2d7e9c31b3a2999ab2c09ed46" },

@@ -8,12 +8,12 @@ local calculateOsuStats = require("player_profile.osu_stats")
 local calculateMsdStats = require("player_profile.msd_stats")
 
 local Activity = require("player_profile.stats.Activity")
+local SsrTable = require("player_profile.stats.SsrTable")
 
 local getPP = require("player_profile.osu_pp")
 
 local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
-local has_minacalc, etterna_msd = pcall(require, "libchart.etterna_msd")
-local _, minacalc = pcall(require, "libchart.minacalc")
+local has_minacalc, etterna_msd = pcall(require, "minacalc.etterna_msd")
 
 ---@alias RecentChartInfo { osu_diff: number, enps_diff: number, msd_diff: number, tempo: number }
 ---@alias DanInfo { name: string, hash: string, category: string, ss: string?, accuracy: number? }
@@ -27,8 +27,8 @@ local _, minacalc = pcall(require, "libchart.minacalc")
 ---@field recentlyPlayedCharts {[string]: RecentChartInfo[]}
 ---@field pp number
 ---@field accuracy number
----@field ssr table<string, number>
----@field liveSsr table<string, number>
+---@field ssr number
+---@field liveSsr number
 ---@field danClears {[string]: {[string]: string}}
 ---@field danInfos DanInfo[]
 local PlayerProfileModel = class()
@@ -102,27 +102,8 @@ function PlayerProfileModel:new(notification_model)
 	self.osuLevelPercent = 0
 	self.rank = 0
 
-	self.ssr = {
-		overall = 0,
-		stream = 0,
-		jumpstream = 0,
-		handstream = 0,
-		stamina = 0,
-		jackspeed = 0,
-		chordjack = 0,
-		technical = 0,
-	}
-
-	self.liveSsr = {
-		overall = 0,
-		stream = 0,
-		jumpstream = 0,
-		handstream = 0,
-		stamina = 0,
-		jackspeed = 0,
-		chordjack = 0,
-		technical = 0,
-	}
+	self.ssr = 0
+	self.liveSsr = 0
 
 	self.osuLevels = { 0 }
 
@@ -186,11 +167,12 @@ function PlayerProfileModel:getMsd(chartdiff, chart, accuracy)
 
 	local rate = chartdiff.rate
 	local diff_context = DiffcalcContext(chartdiff, chart, rate)
-
 	local notes = diff_context:getSimplifiedNotes()
-	local rows, row_count = etterna_msd.getRows(notes)
-	local status, result = pcall(minacalc.getSsr, rows, row_count, rate, accuracy)
+	local success, result = pcall(etterna_msd.getSsr, notes, rate, accuracy)
 
+	if not success then
+		return {}
+	end
 	return result
 end
 
@@ -658,11 +640,15 @@ function PlayerProfileModel:getModeStats(mode)
 		pp = pp + (v * math.pow(0.95, (i - 1)))
 	end
 
+	local ssr_table = SsrTable(self.topScores, mode)
+
 	return {
 		pp = pp,
 		avgStarRate = total_star_rate / sessions_num,
 		avgEnps = total_enps / sessions_num,
-		avgTempo = total_tempo / sessions_num
+		avgTempo = total_tempo / sessions_num,
+		patterns = ssr_table.ssr,
+		patternNames = ssr_table.patterns
 	}
 end
 
