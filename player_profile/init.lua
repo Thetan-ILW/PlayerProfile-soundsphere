@@ -88,7 +88,6 @@ PlayerProfileModel.danChars = {
 	Eta = "η",
 }
 
----@param notification_model sphere.NotificationModel
 function PlayerProfileModel:new(notification_model)
 	self.notificationModel = notification_model
 	self.topScores = {}
@@ -125,7 +124,6 @@ function PlayerProfileModel:new(notification_model)
 		end
 	end
 
-
 	local err = self:loadScores()
 
 	if err then
@@ -148,11 +146,23 @@ function PlayerProfileModel:new(notification_model)
 	self:findDanClears()
 end
 
+---@param message string
+---@param type "error" | "orange"
+function PlayerProfileModel:notify(message, type)
+	if type == "error" then
+		message = "!" .. message
+	elseif type == "orange" then
+		message = "@" .. message
+	end
+
+	self.notificationModel:notify(message)
+end
+
 function PlayerProfileModel:error(err)
 	self.pp = -1
 	self.writeScores = function () end
 	self.loadScores = function () end
-	self.notificationModel:notify("!Critical error:\nFailed to load local profile scores!\nCheck the console for details.")
+	self:notify("Critical error:\nFailed to load local profile scores!\nCheck the console for details.", "error")
 	print(err)
 end
 
@@ -245,12 +255,12 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 
 		if rate < 1 then
 			dan_clear = false
-			self.notificationModel:notify("@Using music speed below 1.00x is not allowed on this chart.")
+			self:notify("Using music speed below 1.00x is not allowed on this chart.", "orange")
 		end
 
 		if paused then
 			dan_clear = false
-			self.notificationModel:notify("@Pausing is not allowed on this chart.")
+			self:notify("Pausing is not allowed on this chart.", "orange")
 		end
 	end
 
@@ -286,13 +296,13 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 
 	if not top_score then
 		if dan_info then
-			self.notificationModel:notify("@MASSIVE L BOZO COPE")
+			self:notify("MASSIVE L BOZO COPE", "orange")
 		end
 		return
 	end
 
 	if dan_clear then
-		self.notificationModel:notify(("@Congratulations! You cleared %s dan!"):format(dan_info.name))
+		self:notify(("Congratulations! You cleared %s dan!"):format(dan_info.name), "orange")
 	end
 
 	self.topScores[key] = {
@@ -642,11 +652,21 @@ function PlayerProfileModel:getModeStats(mode)
 
 	local ssr_table = SsrTable(self.topScores, mode)
 
+	local avg_star_rate = 0
+	local avg_enps = 0
+	local avg_tempo = 0
+
+	if sessions_num ~= 0 then
+		avg_star_rate = total_star_rate / sessions_num
+		avg_enps = total_enps / sessions_num
+		avg_tempo = total_tempo / sessions_num
+	end
+
 	return {
 		pp = pp,
-		avgStarRate = total_star_rate / sessions_num,
-		avgEnps = total_enps / sessions_num,
-		avgTempo = total_tempo / sessions_num,
+		avgStarRate = avg_star_rate,
+		avgEnps = avg_enps,
+		avgTempo = avg_tempo,
 		patterns = ssr_table.ssr,
 		patternNames = ssr_table.patterns
 	}
