@@ -13,7 +13,6 @@ local SsrTable = require("player_profile.stats.SsrTable")
 local getPP = require("player_profile.osu_pp")
 
 local DiffcalcContext = require("sphere.models.DifficultyModel.DiffcalcContext")
-local has_minacalc, etterna_msd = pcall(require, "minacalc.etterna_msd")
 
 ---@alias RecentChartInfo { osu_diff: number, enps_diff: number, msd_diff: number, tempo: number }
 ---@alias DanInfo { name: string, hash: string, category: string, ss: string?, accuracy: number? }
@@ -88,8 +87,9 @@ PlayerProfileModel.danChars = {
 	Eta = "η",
 }
 
-function PlayerProfileModel:new(notification_model)
-	self.notificationModel = notification_model
+---@param game sphere.GameController
+function PlayerProfileModel:new(game)
+	self.notificationModel = game.notificationModel
 	self.topScores = {}
 	self.scores = {}
 	self.sessions = {}
@@ -122,6 +122,12 @@ function PlayerProfileModel:new(notification_model)
 				self.danInfos[item.hash] = item
 			end
 		end
+	end
+
+	local msd_calc_dir = game.packageManager:getPackageDir("msd_calculator")
+
+	if msd_calc_dir then
+		self.etterna = require("minacalc.etterna_msd")
 	end
 
 	local err = self:loadScores()
@@ -170,19 +176,20 @@ end
 ---@param chart ncdk2.Chart
 ---@param accuracy number
 ---@return table<string, number>
-function PlayerProfileModel:getMsd(chartdiff, chart, accuracy)
-	if not has_minacalc or chartdiff.inputmode ~= "4key" then
+function PlayerProfileModel:getSsr(chartdiff, chart, accuracy)
+	if not self.etterna or chartdiff.inputmode ~= "4key" then
 		return {}
 	end
 
 	local rate = chartdiff.rate
 	local diff_context = DiffcalcContext(chartdiff, chart, rate)
 	local notes = diff_context:getSimplifiedNotes()
-	local success, result = pcall(etterna_msd.getSsr, notes, rate, accuracy)
+	local success, result = pcall(self.etterna.getSsr, notes, rate, accuracy, chartdiff.inputmode)
 
 	if not success then
 		return {}
 	end
+
 	return result
 end
 
@@ -236,7 +243,7 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 	local j4_accuracy = score_system.judgements["Etterna J4"].accuracy
 
 	local pp = getPP(chartdiff.notes_count, chartdiff.osu_diff, 9, osu_score)
-	local msds = self:getMsd(chartdiff, chart, j4_accuracy)
+	local ssr = self:getSsr(chartdiff, chart, j4_accuracy)
 
 	---@type number
 	local rate = chartdiff.rate
@@ -313,14 +320,14 @@ function PlayerProfileModel:addScore(key, chart, chartdiff, chartview, score_sys
 		osuAccuracy = osu_v1.accuracy,
 		osuPP = pp,
 		osuScore = osu_score,
-		overall = msds.overall,
-		stream = msds.stream,
-		jumpstream = msds.jumpstream,
-		handstream = msds.handstream,
-		stamina = msds.stamina,
-		jackspeed = msds.jackspeed,
-		chordjack = msds.chordjack,
-		technical = msds.technical,
+		overall = ssr.overall,
+		stream = ssr.stream,
+		jumpstream = ssr.jumpstream,
+		handstream = ssr.handstream,
+		stamina = ssr.stamina,
+		jackspeed = ssr.jackspeed,
+		chordjack = ssr.chordjack,
+		technical = ssr.technical,
 	}
 
 	local err = self:writeScores()

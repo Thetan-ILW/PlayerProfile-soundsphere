@@ -3,7 +3,7 @@
     "display_name": "Local Player Profile",
     "desc": "Calculates PP, MSD stats, counts Dan course completions and collects lots of session information.",
     "creator": "Thetan",
-    "version": 1,
+    "version": 2,
     "types": {
         "require": "player_profile_init",
     },
