@@ -584,15 +584,6 @@ local function commaValue(n) -- credit http://richard.warburton.it
 end
 
 function PlayerProfileModel:getOverallStats()
-	local osuv2_acc_total = 0.0
-	local etterna_acc_total = 0.0
-	local num_scores = 0
-
-	for i, v in pairs(self.scores) do
-		osuv2_acc_total = osuv2_acc_total + v.osuv2Accuracy
-		etterna_acc_total = etterna_acc_total + v.etternaAccuracy
-		num_scores = num_scores + 1
-	end
 
 	local total_keys_pressed = 0
 	local total_charts_played = 0
@@ -616,9 +607,6 @@ function PlayerProfileModel:getOverallStats()
 		level = self.osuLevel,
 		levelProgress = self.osuLevelPercent,
 		pp = self.pp,
-		osuv1Accuracy = self.accuracy,
-		osuv2Accuracy = osuv2_acc_total / num_scores,
-		etternaAccuracy = etterna_acc_total / num_scores
 	}
 end
 
@@ -662,11 +650,31 @@ function PlayerProfileModel:getModeStats(mode)
 	local avg_star_rate = 0
 	local avg_enps = 0
 	local avg_tempo = 0
-
 	if sessions_num ~= 0 then
 		avg_star_rate = total_star_rate / sessions_num
 		avg_enps = total_enps / sessions_num
 		avg_tempo = total_tempo / sessions_num
+	end
+
+	local osuv1_acc_total = 0.0
+	local osuv2_acc_total = 0.0
+	local etterna_acc_total = 0.0
+	local num_scores = 0
+
+	for i, v in pairs(self.scores) do
+		osuv1_acc_total = osuv1_acc_total + v.osuAccuracy
+		osuv2_acc_total = osuv2_acc_total + v.osuv2Accuracy
+		etterna_acc_total = etterna_acc_total + v.etternaAccuracy
+		num_scores = num_scores + 1
+	end
+
+	local osuv1 = 0
+	local osuv2 = 0
+	local etterna = 0
+	if num_scores ~= 0 then
+		osuv1 = osuv1_acc_total / num_scores
+		osuv2 = osuv2_acc_total / num_scores
+		etterna = etterna_acc_total / num_scores
 	end
 
 	return {
@@ -675,7 +683,10 @@ function PlayerProfileModel:getModeStats(mode)
 		avgEnps = avg_enps,
 		avgTempo = avg_tempo,
 		patterns = ssr_table.ssr,
-		patternNames = ssr_table.patterns
+		patternNames = ssr_table.patterns,
+		osuv1Accuracy = osuv1,
+		osuv2Accuracy = osuv2,
+		etternaAccuracy = etterna
 	}
 end
 
